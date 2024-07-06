@@ -1,56 +1,22 @@
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.common.by import By
-import time
+from crawling import makeLectures
 
-options = Options()
-# gitpod에서 접속하기 위한 옵션
-options.add_argument("--disable-dev-shm-usage") 
-options.add_argument("--headless")  
+#################################################
+#########건국대학교 종강시 강의 정보 수집기#########
 
-# Setup ChromeDriver
-service = Service(ChromeDriverManager().install())
-driver = webdriver.Chrome(service=service, options=options)
+######공통 옵션######
+YEAR = 2024     #연도
+GRADE = 1       #학년
+SEMESTER = 2    #학기   여름학기, 겨울학기 미구현
 
-#페이지 접속
-url = "https://sugang.konkuk.ac.kr/sugang/jsp/search/searchMainOuter.jsp"
+######학과 선택######
+#[작성법]
+#종강시에서 대학 + 학과 몇번째에 있는지를 기준으로 작성
+#예시)
+# 공과대학 컴퓨터공학부 : 대학 5번째, 학과 19번째 -> 0519
+# KU융합과학기술원 미래에너지공학과 : 대학 1번째, 학과 1번째 -> 0101
+limitMAJOR = True   #True: 한 학과만 불러오기, False: 모든 학과 불러오기
+MAJOR = '0519'      #총 4글자
 
-driver.get(url)
-print(driver.title)
+lectures = makeLectures(YEAR, GRADE, SEMESTER, limitMAJOR, MAJOR)
 
-time.sleep(1)
-
-#종강시 옵션 선택
-select_term = driver.find_element(By.ID, 'pTerm')
-select_term.select_by_index(1)
-
-option = driver.find_element(By.ID, 'pSearchGb2')
-option.click()
-
-select_univ = driver.find_element(By.ID, 'pUniv')
-select_univ.select_by_index(2)
-
-# select_major = driver.find_element(By.ID, 'pSustMjCd')
-# select_mafor.select_by_index(1)
-
-search_box = driver.find_element(By.ID, 'btnSearch')
-search_box.click()
-
-time.sleep(1)
-
-a = driver.find_element(By.XPATH, '/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[2]/td[5]')
-print(a.get_text())
-
-# print(search_box)
-
-
-
-#크롬 드라이버에 url 주소 넣고 실행
-
-
-# driver.get("https://www.example.com")
-# print(driver.title)
-
-# driver.quit()
+##아웃풋 형식##
