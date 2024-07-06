@@ -2,32 +2,53 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.by import By
+import time
 
 options = Options()
-# Important Arguments won't eun without them in Gitpod
+# gitpod에서 접속하기 위한 옵션
 options.add_argument("--disable-dev-shm-usage") 
 options.add_argument("--headless")  
-#예제
-options.add_argument("--headless")
-options.add_argument("window-size=1400,1500")
-options.add_argument("--disable-gpu")
-options.add_argument("--no-sandbox")
-options.add_argument("start-maximized")
-options.add_argument("enable-automation")
-options.add_argument("--disable-infobars")
-options.add_argument("--disable-dev-shm-usage")
 
 # Setup ChromeDriver
 service = Service(ChromeDriverManager().install())
 driver = webdriver.Chrome(service=service, options=options)
 
-
-
-url = "https://www.naver.com/"
+#페이지 접속
+url = "https://sugang.konkuk.ac.kr/sugang/jsp/search/searchMainOuter.jsp"
 
 driver.get(url)
+print(driver.title)
 
-print(driver.page_source)
+time.sleep(1)
+
+#종강시 옵션 선택
+select_term = driver.find_element(By.ID, 'pTerm')
+select_term.select_by_index(1)
+
+option = driver.find_element(By.ID, 'pSearchGb2')
+option.click()
+
+select_univ = driver.find_element(By.ID, 'pUniv')
+select_univ.select_by_index(2)
+
+# select_major = driver.find_element(By.ID, 'pSustMjCd')
+# select_mafor.select_by_index(1)
+
+search_box = driver.find_element(By.ID, 'btnSearch')
+search_box.click()
+
+time.sleep(1)
+
+a = driver.find_element(By.XPATH, '/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[2]/td[5]')
+print(a.get_text())
+
+# print(search_box)
+
+
+
+#크롬 드라이버에 url 주소 넣고 실행
+
 
 # driver.get("https://www.example.com")
 # print(driver.title)
