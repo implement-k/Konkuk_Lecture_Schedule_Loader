@@ -22,12 +22,58 @@ def readySelenium():
     return driver
     
 
+def iterTable(site, lectures):
+    #TODO 10: 해설[TODO 영어 한국어 해설도 조사] -> 현재는 비활성
+    #TODO 4: 강의번호 누를시 강의 계획서 팝업 으로 강의 계획서 수집 -> 현재는 강의번호만
+    #TODO 16: info 변경 -> days, starts, ends
+
+    r = 2
+    moreRow = True
+    id_dict = {
+        2: 'course_num', 3: 'class', 4: 'lecnum', 5: 'name', 6: 'credit', 7: 'hour', 8: 'type_name',
+        9: 'lang', 10: '해설', 11: 'note', 12: 'class_elective', 13: 'grade', 14: 'basic_major', 15: 'instructor', 16: 'info'
+        }
+    order = [i for i in range(2, 17)]
+    order = [order[2]] + order[:2] + order[3:]    #4->2->3->5->6->...
+
+    while True:
+        lecnum = 0
+        lecture = {}
+        print(r)
+        for c in order:
+            try: 
+                i = site.find_element(By.XPATH, f'/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[{r}]/td[{c}]')
+            except:
+                moreRow = False
+                break
+
+            if c == 4:
+                lecnum = int(site.find_element(By.XPATH, f'/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[{r}]/td[{c}]/button').text)
+                
+                if lecnum in lectures:
+                    print('이미 있는 강의번호   : '+str(lecnum))
+                    break
+
+                continue
+        
+            lecture[id_dict[c]] = i.text
+        
+        if not moreRow:
+            break
+
+        r += 1
+        lectures[lecnum] = lecture.copy()
+
+
 def crawlSite(site, YEAR, GRADE, SEMESTER, limitMAJOR, MAJOR):
-    print(f'선택한 옵션  :\n 연도 : {YEAR}, 학년 : {GRADE}, 학기 : {SEMESTER}, ', end='')
+    lectures = {}
+
+    print(f'선택한 옵션  : (연도 : {YEAR}, 학년 : {GRADE}, 학기 : {SEMESTER}, ', end='')
+
     if limitMAJOR:
-        print(f'학과 : {MAJOR}')
+        print(f'학과 : {MAJOR})')
     else:
-        print(f'학과 : 전체학과')
+        print(f'학과 : 전체학과)')
 
     UNIV = int(MAJOR[:2])
     MAJOR = int(MAJOR[2:])
@@ -35,19 +81,19 @@ def crawlSite(site, YEAR, GRADE, SEMESTER, limitMAJOR, MAJOR):
     try:
         Select(site.find_element(By.ID, 'pYear')).select_by_visible_text(str(YEAR))
     except NoSuchElementException:
-        print('해당 연도를 선택할 수 없음')
+        print('오류     : 해당 연도를 선택할 수 없음')
         exit(0)
     except:
-        print('연도 오류')
+        print('오류     : 연도 오류')
         exit(0)
 
     try:
         Select(site.find_element(By.ID, 'pTerm')).select_by_index(SEMESTER-1)
     except NoSuchElementException:
-        print('해당 학년를 선택할 수 없음')
+        print('오류     : 해당 학년를 선택할 수 없음')
         exit(0)
     except:
-        print('학년 오류')
+        print('오류     : 학년 오류')
         exit(0)
 
     site.find_element(By.XPATH, '/html/body/div[2]/div/div/div[1]/form/table/tbody/tr[2]/td[2]/label[2]').click()
@@ -56,40 +102,62 @@ def crawlSite(site, YEAR, GRADE, SEMESTER, limitMAJOR, MAJOR):
     select_univ = Select(site.find_element(By.ID, 'pUniv'))
     select_major = Select(site.find_element(By.ID, 'pSustMjCd'))
 
+    print('진행과정 : 불러오기 시작')
+
     if limitMAJOR:
-        select_univ.select_by_index(UNIV)
-        univ_element = site.find_element(By.XPATH, f'/html/body/div[2]/div/div/div[1]/form/table/tbody/tr[2]/td[3]/select/option[{UNIV}]')
-        print(univ_element.text, end=' ')
+        try:
+            select_univ.select_by_index(UNIV)
+        except NoSuchElementException:
+            print('오류     : 해당 대학을 선택할 수 없음')
+            exit(0)
+        except:
+            print('오류     : 대학 오류')
+            exit(0)
+
+        univ_element = site.find_element(By.XPATH, f'/html/body/div[2]/div/div/div[1]/form/table/tbody/tr[2]/td[3]/select/option[{UNIV+1}]')
+        print('진행과정 : '+univ_element.text, end=' ')
         time.sleep(3)
 
-        # select_major.select_by_visible_text('컴퓨터공학부')
-        select_major.select_by_index(MAJOR)
-        major_element = site.find_element(by.XPATH, f'/html/body/div[2]/div/div/div[1]/form/table/tbody/tr[2]/td[4]/select/option[{MAJOR}]')
+        try:
+            select_major.select_by_index(MAJOR)
+        except NoSuchElementException:
+            print('오류     : 해당 학과을 선택할 수 없음')
+            exit(0)
+        except:
+            print('오류     : 학과 오류')
+            exit(0)
+
+        major_element = site.find_element(By.XPATH, f'/html/body/div[2]/div/div/div[1]/form/table/tbody/tr[2]/td[4]/select/option[{MAJOR+1}]')
         print(major_element.text)
-
+        
         site.find_element(By.ID, 'btnSearch').click()
-        time.sleep(0.5)
+        time.sleep(1)
 
-        print(site.find_element(By.XPATH, '/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[2]/td[5]').text)
+        iterTable(site, lectures)
     else:
         univ = 1
-        print('진행과정')
         while True:
             try: select_univ.select_by_index(univ)
             except: break
 
             univ_element = site.find_element(By.XPATH, f'/html/body/div[2]/div/div/div[1]/form/table/tbody/tr[2]/td[3]/select/option[{UNIV}]')
-            print(select_element.text, end=' ')
+            print('진행과정 : '+select_element.text, end=' ')
             time.sleep(0.5)
 
             while True:
-                select_major.select_by_index(MAJOR)
+                try: select_major.select_by_index(MAJOR)
+                except: break
+
                 major_element = site.find_element(by.XPATH, f'/html/body/div[2]/div/div/div[1]/form/table/tbody/tr[2]/td[4]/select/option[{MAJOR}]')
                 print(major_element.text,end='\r')
 
                 site.find_element(By.ID, 'btnSearch').click()
-                time.sleep(0.5)
-                print(site.find_element(By.XPATH, '/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[2]/td[5]').text)
+                time.sleep(1)
+                iterTable(site, lectures)
+    
+    print('진행과정 : 완료!')
+
+    return lectures
 
 
 def makeLectures(YEAR, GRADE, SEMESTER, limitMAJOR, MAJOR):
@@ -103,45 +171,5 @@ def makeLectures(YEAR, GRADE, SEMESTER, limitMAJOR, MAJOR):
     time.sleep(0.1)
 
     lectures = crawlSite(site, YEAR, GRADE, SEMESTER, limitMAJOR, MAJOR)
- 
-    
+
     return lectures
-
-
-
-
-# lectures : {
-#   [과목번호] : lecture
-# }
-# lecture : {
-#   class:int, //이수구분
-#   credit:int[0~21], //학점
-#   lang:int[0~2^9] <1:한국어, 2:영어, 4:중국어, ..., 3:한국어+영어, ..., 7:한국어+영어+중국어, ...>, //언어유형
-#   pmajors:[우선학과 리스트], //우선학과
-#   instructor:string, //교강사
-#   building:int[0~100], //건물번호
-#   room:string //호실
-#   num:int,
-#   days:[],
-#   starts:[],
-#   ends:[],
-#   exam:[],
-# }
-# print(search_box)
-
-# /html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[2]/td[2]
-# /html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[2]/td[3]
-# /html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[2]/td[16]
-
-
-# /html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[3]/td[2]
-
-
-
-#크롬 드라이버에 url 주소 넣고 실행
-
-
-# driver.get("https://www.example.com")
-# print(driver.title)
-
-# driver.quit()
