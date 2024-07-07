@@ -1,7 +1,4 @@
-<p align="center">
-  <img src="https://www.omkar.cloud/images/favicon/prod/favicon-256x256.png" alt="omkar" />
-</p>
-  <div align="center" style="margin-top: 0;">
+<div align="center" style="margin-top: 0;">
   <h1>✨ Konkuk Univ. lecture schedule(종강시) crawler 🤖</h1>
   <p> Run Python Selenium in Gitpod </p>
 </div>

@@ -19,3 +19,16 @@ lecture : {
   ends:[],
   exam:[],
 }
+
+id_dict = {
+        2: 'course_num', 3: 'class', 4: 'lecnum', 5: 'name', 6: 'credit', 7: 'hour', 8: 'type_name',
+        9: 'lang', 10: '해설', 11: 'note', 12: 'class_elective', 13: 'grade', 14: 'basic_major', 15: 'instructor', 16: 'info'
+        }
+
+        elif c == 10:
+                continue
+                #TODO 10: 해설[TODO 영어 한국어 해설도 조사] -> 현재는 비활성
+            elif c == 16:
+                if i == '(e-러닝)':
+                    continue
+                #TODO 16: info 변경 -> days, starts, ends

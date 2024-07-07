@@ -1,23 +1,20 @@
 from crawling import makeLectures
+import json
 
 #################################################
 #########건국대학교 종강시 강의 정보 수집기#########
 
 ######공통 옵션######
 YEAR = 2024     #연도
-GRADE = 1       #학년
 SEMESTER = 1    #학기   여름학기, 겨울학기 미구현
 
-######학과 선택######
-#[작성법]
-#종강시에서 대학 + 학과 몇번째에 있는지를 기준으로 작성
-#예시) 2024 1학기 기준
-# 공과대학 컴퓨터공학부 : 대학 5번째, 학과 17번째 -> 0517
-# KU융합과학기술원 미래에너지공학과 : 대학 1번째, 학과 1번째 -> 0101
-limitMAJOR = True   #True: 한 학과만 불러오기, False: 모든 학과 불러오기
-MAJOR = '0517'      #총 4글자
+GRADE = 1       #TODO 학년 제거, TODO 중단된 체크포인트부터 시작
+lectures = makeLectures(YEAR, GRADE, SEMESTER)
 
-lectures = makeLectures(YEAR, GRADE, SEMESTER, limitMAJOR, MAJOR)
-print(lectures)
+########출력########
+#checkpoint_[이수과정].json : 이수과정까지의 체크포인트
+#lecture_info.json : 완료된 파일
+#dub_log.json : 로그파일
+with open('lecture_info.json', 'w', encoding='UTF-8') as f : 
+	json.dump(lectures, f, indent=4, ensure_ascii=False)
 
-##아웃풋 형식##
