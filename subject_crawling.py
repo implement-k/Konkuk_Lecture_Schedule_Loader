@@ -95,5 +95,3 @@ def other_subjects(idx, site, lectures, select_class, log):
     site.find_element(By.ID, 'btnSearch').click()
     time.sleep(1)
     iterTable(site, lectures, log)
-   
-            
