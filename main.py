@@ -1,6 +1,6 @@
 from crawling import makeLectures
 import json, datetime
-NOW = datetime.datetime.now().strftime("%Y_%m_%d_%H%M%S")
+NOW = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
 #################################################
 #########건국대학교 종강시 강의 정보 수집기#########
@@ -13,9 +13,8 @@ YEAR = 2024     #연도
 SEMESTER = 1    #학기   여름학기, 겨울학기 미구현
 
 ######선택 옵션######
-#만약 중간에 중단됐다면, 마지막으로 생성된 checkpoint파일 경로
-#처음이라면 공백으로
-# CHECKPOINT = 'checkpoint/checkpoint_전선.json' 
+#중간에 중단됐다면, 마지막으로 생성된 checkpoint파일 경로
+#처음이라면, 공백
 CHECKPOINT = ''
 
 lectures = makeLectures(YEAR, SEMESTER, CHECKPOINT, URL)

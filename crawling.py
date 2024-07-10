@@ -10,7 +10,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from subject_crawling import major_or_designated
 from subject_crawling import other_subjects
 import json, datetime, time
-NOW = datetime.datetime.now().strftime("%Y_%m_%d_%H%M%S")
+NOW = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
 
 def crawlSite(site, YEAR, SEMESTER, CHECKPOINT):

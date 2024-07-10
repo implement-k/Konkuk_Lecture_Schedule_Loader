@@ -58,7 +58,14 @@ def iterTable(site, lectures, log, u='', m=''):
 def major_or_designated(idx, site, lectures, select_class, select_univ, select_major, log):
     select_class.select_by_index(idx)
     time.sleep(1)
+
+    try:
+        site.find_element(By.XPATH, '/html/body/div[3]/div[2]/div/div/div/div/div/div/div/div[4]/button[1]').click()
+    except:
+        pass
+    
     univ = 0
+    
     while True:
         try: select_univ.select_by_index(univ)
         except: break
