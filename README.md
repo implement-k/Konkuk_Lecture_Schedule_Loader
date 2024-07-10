@@ -19,6 +19,10 @@ This Docker environment is designed to facilitate web scraping using Python with
 
 *️⃣ 로컬에서 사용시 Dockerfile, .gitpod.yml 삭제 후 사용하여도 문제 없음.
 
+## 추가될 기능
+
+- 강의계획서 불러오기
+
 ## About Image
 
 The Docker image `Chetan11/gitpod-selenium` contains:
