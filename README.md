@@ -13,9 +13,9 @@ This Docker environment is designed to facilitate web scraping using Python with
 
 ## Usage
 
-1️⃣ 
+1️⃣ main.py의 옵션 수정
 
-2️⃣ 
+2️⃣ 실행
 
 
 ## About Image
