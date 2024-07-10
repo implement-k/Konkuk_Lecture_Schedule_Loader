@@ -25,11 +25,11 @@ def readySelenium():
     return driver
 
 
-def crawlSite(site, YEAR, GRADE, SEMESTER):
+def crawlSite(site, YEAR, SEMESTER):
     log = []
     lectures = {}
 
-    print(f'선택한 옵션  : (연도 : {YEAR}, 학년 : {GRADE}, 학기 : {SEMESTER})')
+    print(f'선택한 옵션  : (연도 : {YEAR}, 학기 : {SEMESTER})')
     try:
         Select(site.find_element(By.ID, 'pYear')).select_by_visible_text(str(YEAR))
     except NoSuchElementException:
@@ -116,7 +116,7 @@ def crawlSite(site, YEAR, GRADE, SEMESTER):
     return lectures
 
 
-def makeLectures(YEAR, GRADE, SEMESTER):
+def makeLectures(YEAR, SEMESTER):
     site = readySelenium()
 
     #페이지 접속
@@ -126,6 +126,6 @@ def makeLectures(YEAR, GRADE, SEMESTER):
 
     time.sleep(0.1)
 
-    lectures = crawlSite(site, YEAR, GRADE, SEMESTER)
+    lectures = crawlSite(site, YEAR, SEMESTER)
 
     return lectures
