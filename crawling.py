@@ -7,29 +7,39 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from webdriver_manager.chrome import ChromeDriverManager
-import time
 from subject_crawling import major_or_designated
 from subject_crawling import other_subjects
-import json
+import json, datetime, time
+NOW = datetime.datetime.now().strftime("%Y_%m_%d_%H%M%S")
 
 
-def readySelenium():
-    options = Options()
-    # gitpod에서 접속하기 위한 옵션
-    options.add_argument("--disable-dev-shm-usage") 
-    options.add_argument("--headless")  
-
-    # Setup ChromeDriver
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=options)
-    return driver
-
-
-def crawlSite(site, YEAR, SEMESTER):
+def crawlSite(site, YEAR, SEMESTER, CHECKPOINT):
     log = []
-    lectures = {}
+    lectures = {'checkpoint':0}
+    checkpoint = 0
 
-    print(f'선택한 옵션  : (연도 : {YEAR}, 학기 : {SEMESTER})')
+    print(f'선택한 옵션  : (연도 : {YEAR}, 학기 : {SEMESTER}, ',end='')
+
+    if CHECKPOINT:
+        print(f'체크포인트 : {CHECKPOINT})')
+
+        try:
+            with open(CHECKPOINT, 'r') as f:
+                lectures = json.load(f)
+        except FileNotFoundError:
+            print('오류     : 해당 파일을 찾을 수 없음')
+            exit(0)
+        except:
+            print('오류     : 경로 오류')
+            exit(0)
+        
+        if 'checkpoint' in lectures:
+            checkpoint = lectures['checkpoint']
+        else:
+            print('이미 완성된 파일')
+    else:
+        print(f'체크포인트 : 없음)')
+
     try:
         Select(site.find_element(By.ID, 'pYear')).select_by_visible_text(str(YEAR))
     except NoSuchElementException:
@@ -57,50 +67,74 @@ def crawlSite(site, YEAR, SEMESTER):
 
     print('진행과정 : 불러오기 시작')
     print('----------------------')
-    print('진행과정 : 전선 시작')
-    major_or_designated(0, site, lectures, select_class, select_univ, select_major, log) #전선
-    print('진행과정 : 전선 완료                                     ')
+    if checkpoint < 1:
+        print('진행과정 : 전선 시작')
+        major_or_designated(0, site, lectures, select_class, select_univ, select_major, log) #전선
+        print('진행과정 : 전선 완료                                     ')
+        lectures['checkpoint'] = 1
 
-    print('전선 저장')
-    with open('checkpoint_전선.json', 'w', encoding='UTF-8') as f : 
-	    json.dump(lectures, f, indent=4, ensure_ascii=False)
+        print('전선 저장')
+        with open(f'checkpoint/checkpoint_전선_{NOW}.json', 'w', encoding='UTF-8') as f : 
+            json.dump(lectures, f, indent=4, ensure_ascii=False)
 
-    print('진행과정 : 전필 시작')
-    major_or_designated(1, site, lectures, select_class, select_univ, select_major, log) #전필
-    print('진행과정 : 전필 완료                                     ')
+    if checkpoint < 2:
+        print('진행과정 : 전필 시작')
+        major_or_designated(1, site, lectures, select_class, select_univ, select_major, log) #전필
+        print('진행과정 : 전필 완료                                     ')
+        lectures['checkpoint'] = 2
 
-    print('전필 저장')
-    with open('checkpoint_전필.json', 'w', encoding='UTF-8') as f : 
-	    json.dump(lectures, f, indent=4, ensure_ascii=False)
+        print('전필 저장')
+        with open(f'checkpoint/checkpoint_전필_{NOW}.json', 'w', encoding='UTF-8') as f : 
+            json.dump(lectures, f, indent=4, ensure_ascii=False)
 
-    print('진행과정 : 지교 시작')
-    major_or_designated(2, site, lectures, select_class, select_univ, select_major, log) #지교
-    print('진행과정 : 지교 완료                                     ')
+    if checkpoint < 3:
+        print('진행과정 : 지교 시작')
+        major_or_designated(2, site, lectures, select_class, select_univ, select_major, log) #지교
+        print('진행과정 : 지교 완료                                     ')
+        lectures['checkpoint'] = 3
 
-    print('지교 저장')
-    with open('checkpoint_지교.json', 'w', encoding='UTF-8') as f : 
-	    json.dump(lectures, f, indent=4, ensure_ascii=False)
+        print('지교 저장')
+        with open(f'checkpoint/checkpoint_지교_{NOW}.json', 'w', encoding='UTF-8') as f : 
+            json.dump(lectures, f, indent=4, ensure_ascii=False)
 
-    print('진행과정 : 지필 시작')
-    major_or_designated(3, site, lectures, select_class, select_univ, select_major, log) #지필
-    print('진행과정 : 지필 완료                                     ')
+    if checkpoint < 4:
+        print('진행과정 : 지필 시작')
+        major_or_designated(3, site, lectures, select_class, select_univ, select_major, log) #지필
+        print('진행과정 : 지필 완료                                     ')
+        lectures['checkpoint'] = 4
 
-    print('지필 저장')
-    with open('checkpoint_지필.json', 'w', encoding='UTF-8') as f : 
-	    json.dump(lectures, f, indent=4, ensure_ascii=False)
+        print('지필 저장')
+        with open(f'checkpoint/checkpoint_지필_{NOW}.json', 'w', encoding='UTF-8') as f : 
+            json.dump(lectures, f, indent=4, ensure_ascii=False)
 
-    print('진행과정 : 일선 시작')
-    other_subjects(4, site, lectures, select_class, log)  #일선
-    print('진행과정 : 일선 완료                                     ')
-    print('진행과정 : 교직 시작')
-    other_subjects(5, site, lectures, select_class, log)  #교직
-    print('진행과정 : 교직 완료                                     ')
-    print('진행과정 : 기교 시작')
-    other_subjects(6, site, lectures, select_class, log)  #기교
-    print('진행과정 : 기교 완료                                     ')
-    print('진행과정 : 심교 시작')
-    other_subjects(7, site, lectures, select_class, log)  #심교
-    print('진행과정 : 심교 완료                                     ')
+    if checkpoint < 5:
+        print('진행과정 : 일선 시작')
+        other_subjects(4, site, lectures, select_class, log)  #일선
+        print('진행과정 : 일선 완료                                     ')
+        print('진행과정 : 교직 시작')
+        other_subjects(5, site, lectures, select_class, log)  #교직
+        print('진행과정 : 교직 완료                                     ')
+        lectures['checkpoint'] = 5
+
+        print('일선, 교직 저장')
+        with open(f'checkpoint/checkpoint_일선_교직_{NOW}.json', 'w', encoding='UTF-8') as f : 
+            json.dump(lectures, f, indent=4, ensure_ascii=False)
+
+    if checkpoint < 6:
+        print('진행과정 : 기교 시작')
+        other_subjects(6, site, lectures, select_class, log)  #기교
+        print('진행과정 : 기교 완료                                     ')
+        lectures['checkpoint'] = 6
+
+        print('기교 저장')
+        with open(f'checkpoint/checkpoint_일선_교직_{NOW}.json', 'w', encoding='UTF-8') as f : 
+            json.dump(lectures, f, indent=4, ensure_ascii=False)
+    
+    if checkpoint < 7:
+        print('진행과정 : 심교 시작')
+        other_subjects(7, site, lectures, select_class, log)  #심교
+        print('진행과정 : 심교 완료                                     ')
+        del lectures['checkpoint']
 
     # print('진행과정 : 융필 시작')
     # convergence_required(8, site, lectures)  #융필
@@ -116,16 +150,26 @@ def crawlSite(site, YEAR, SEMESTER):
     return lectures
 
 
-def makeLectures(YEAR, SEMESTER):
+def readySelenium():
+    options = Options()
+    # gitpod에서 접속하기 위한 옵션
+    options.add_argument("--disable-dev-shm-usage") 
+    options.add_argument("--headless")  
+
+    # Setup ChromeDriver
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=options)
+    return driver
+
+
+def makeLectures(YEAR, SEMESTER, CHECKPOINT, URL):
     site = readySelenium()
 
     #페이지 접속
-    url = "https://sugang.konkuk.ac.kr/sugang/jsp/search/searchMainOuter.jsp"
-    site.get(url)
+    site.get(URL)
     print('접속 완료    : ' + site.title)
-
     time.sleep(0.1)
 
-    lectures = crawlSite(site, YEAR, SEMESTER)
+    lectures = crawlSite(site, YEAR, SEMESTER, CHECKPOINT)
 
     return lectures
