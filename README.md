@@ -1,6 +1,5 @@
 <div align="center" style="margin-top: 0;">
   <h1>✨ Konkuk Univ. lecture schedule(종강시) crawler 🤖</h1>
-  <p> Run Python Selenium in Gitpod </p>
 </div>
 <em>
   <h5 align="center">(Programming Language - Python 3)</h5>
