@@ -17,6 +17,7 @@ This Docker environment is designed to facilitate web scraping using Python with
 
 2️⃣ 실행
 
+*️⃣ 로컬에서 사용시 Dockerfile, .gitpod.yml 삭제 후 사용하여도 문제 없음.
 
 ## About Image
 
