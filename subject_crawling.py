@@ -37,30 +37,15 @@ def iterTable(site, lectures, log, year, term, u='', m=''):
         site.switch_to.window(site.window_handles[1])
 
         #강의계획서 수강신청 유의사항 저장
-        lecture['notice'] = site.find_element(By.XPATH, '/html/body/div/div/div[1]/table/tbody/tr[5]/td').text
+        try:
+            lecture['notice'] = site.find_element(By.XPATH, '/html/body/div/div/div[1]/table/tbody/tr[5]/td').text
+        except:
+            print("오류")
+            pass
         
         #원래 창으로 전환
         site.close()
         site.switch_to.window(site.window_handles[0])
-
-        #해설 링크 저장
-        lecture['commentary_url'] = f'https://sugang.konkuk.ac.kr/sugang/search?attribute=commentPop&fake=1721569321085&pOpenYy={year}&pHaksuId=BLBA05588'
-        #강의계획서, 해설 링크 저장https://sugang.konkuk.ac.kr/sugang/search?attribute=lectPlan&fake=1721569321085&pYear=2023&pTerm=B01011&pSbjtId=3867
-        
-        # 
-#         function fnCommentPop( pOpenYy, pHaksuId ){
-# 	var url	= "";
-# 	var params 	= "&pOpenYy="+pOpenYy+"&pHaksuId="+pHaksuId;
-	
-# 	windowOpen(url + params, 'commentaryPop', '480', '520');
-# }
-
-# function fnLectPlanPop( pSbjtId ){
-# 	var url	= "/sugang/search?attribute=lectPlan&fake=1721569321085";
-# 	var params 	= "&pYear="+$("#pYear").val()+"&pTerm="+$("#pTerm").val()+"&pSbjtId="+pSbjtId;
-	
-# 	windowOpen(url + params, 'lectPlanPop', '1190', '900');
-# }
 
         for c in order:
             #해당 요소 불러오기
