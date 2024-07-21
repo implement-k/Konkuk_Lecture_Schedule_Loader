@@ -54,7 +54,10 @@ def iterTable(site, lectures, log, year, term, u='', m=''):
             except:
                 moreRow = False
                 break
-
+            
+            if c == 10:
+                continue
+            
             if c == 4:
                 lecnum = int(site.find_element(By.XPATH, f'/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[{r}]/td[4]/button').text)
                 
