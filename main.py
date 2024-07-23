@@ -1,4 +1,7 @@
-from crawling import makeLectures
+#v2
+from crawling_v2 import makeLectures
+#v1.1
+# from crawling import makeLectures
 import json, datetime
 NOW = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -12,6 +15,7 @@ NOW = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 URL = "https://sugang.konkuk.ac.kr/sugang/jsp/search/searchMainOuter.jsp" 	#종강시 사이트 링크
 YEAR = 2024     #연도
 SEMESTER = 1    #학기   여름학기, 겨울학기 미구현
+MULTITHREADING = 0		#0: 자동 설정
 
 ################### 선택 옵션 ####################
 #중간에 중단됐다면, 마지막으로 생성된 checkpoint파일 경로
@@ -19,7 +23,11 @@ SEMESTER = 1    #학기   여름학기, 겨울학기 미구현
 CHECKPOINT = ''
 
 ##################### 실행 ######################
-lectures = makeLectures(YEAR, SEMESTER, CHECKPOINT, URL)
+#v1.1
+# lectures = makeLectures(YEAR, SEMESTER, CHECKPOINT, URL)
+#v2
+lectures = makeLectures(YEAR, SEMESTER, CHECKPOINT, URL, MULTITHREADING)
+
 
 ##################### 출력 ######################
 #checkpoint_[이수과정]_[날짜].json : 이수과정까지의 체크포인트

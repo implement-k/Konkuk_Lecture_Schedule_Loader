@@ -138,7 +138,7 @@ def major_or_designated(idx, site, lectures, select_class, select_univ, select_m
 
             #검색 버튼 클릭
             site.find_element(By.ID, 'btnSearch').click()
-            time.sleep(3)
+            time.sleep(8)
 
             #검색 결과 테이블 순회
             iterTable(site, lectures, log, year, term, univ_element.text, major_element.text)
@@ -155,7 +155,7 @@ def other_subjects(idx, site, lectures, select_class, year, term, log):
 
     #검색 버튼 클릭
     site.find_element(By.ID, 'btnSearch').click()
-    time.sleep(1)
+    time.sleep(8)
 
     #검색 결과 테이블 순회
     iterTable(site, lectures, log, year, term)

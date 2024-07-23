@@ -17,81 +17,110 @@ id_dict = {
 order = [i for i in range(2, 17)]
 order = [order[2]] + order[:2] + order[3:]    #4->2->3->5->6->...
 
+import threading
+import time
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
-#결과 테이블 순회
-def iterTable(site, lectures, log, year, term, u='', m=''):
-    r = 2
-    moreRow = True
-    
-    #결과 테이블 행 순회
-    while True:
-        #진행 결과(현재 행) 출력
-        print(u,m,str(r),'                            ',end='\r')
+# 락(Lock) 객체 생성
+lock = threading.Lock()
 
-        lecnum = 0
-        lecture = {}
-        isExist = False
+# 각 행 처리 함수
+def process_row(site, r, lectures, year, term, u='', m=''):
+    lecture = {}
+    lecnum = 0
+    isExist = False
 
-        #강의계획서 창 전환
+    #순서
+    for c in order:
         try:
-            site.find_element(By.XPATH, '/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[2]/td[4]/button').click()
-            site.switch_to.window(site.window_handles[1])
-
-            #강의계획서 수강신청 유의사항 저장
-            try:
-                lecture['notice'] = site.find_element(By.XPATH, '/html/body/div/div/div[1]/table/tbody/tr[5]/td').text
-            except:
-                print(f"알림     : {u} {m} {r} 수강신청 유의사항 없음      ")
-                lecture['notice'] = ''
-                pass
-            
-            #원래 창으로 전환
-            site.close()
-            site.switch_to.window(site.window_handles[0])
+            i = site.find_element(By.XPATH, f'/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[{r}]/td[{c}]').text
         except:
-            print(f"알림     : {u} {m} {r} 팝업창 없음      ")
-            lecture['notice'] = ''
-            pass
+            return False # 처리할 행이 없음
+        
+        if c == 10:
+            continue
+        
+        if c == 4:
+            lecnum = int(site.find_element(By.XPATH, f'/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[{r}]/td[4]/button').text)
+            
+            with lock:
+                try:
+                    # 강의계획서 창 전환
+                    site.find_element(By.XPATH, f'/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[{r}]/td[4]/button').click()
+                    
+                    #TEST 
+                    print(r)
+                    site.switch_to.window(site.window_handles[1])
 
-        for c in order:
-            #해당 요소 불러오기
-            try:
-                i = site.find_element(By.XPATH, f'/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[{r}]/td[{c}]').text
-            except:
-                moreRow = False
-                break
-            
-            if c == 10:
-                continue
-            
-            if c == 4:
-                lecnum = int(site.find_element(By.XPATH, f'/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[{r}]/td[4]/button').text)
-                
-                #중복 확인
+                    # 강의계획서 수강신청 유의사항 저장
+                    try:
+                        lecture['notice'] = site.find_element(By.XPATH, '/html/body/div/div/div[1]/table/tbody/tr[5]/td').text
+                    except NoSuchElementException:
+                        print(f"알림     : {u} {m} {r} 수강신청 유의사항 없음      ")
+                        lecture['notice'] = ''
+                        pass
+                    
+                    # 원래 창으로 전환
+                    site.close()
+                    site.switch_to.window(site.window_handles[0])
+                except NoSuchElementException:
+                    print(f"알림     : {u} {m} {r} 팝업창 없음      ")
+                    lecture['notice'] = ''
+                    pass
+
+                # # 강의계획서 창 전환
+                # site.find_element(By.XPATH, f'/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[{r}]/td[4]/button').click()
+                # site.switch_to.window(site.window_handles[1])
+
+                # # 강의계획서 수강신청 유의사항 저장
+                # lecture['notice'] = site.find_element(By.XPATH, '/html/body/div/div/div[1]/table/tbody/tr[5]/td').text
+    
+                # # 원래 창으로 전환
+                # site.close()
+                # site.switch_to.window(site.window_handles[0])
+
                 if lecnum in lectures and 'course_num' in lectures[lecnum]:
-                    log.append((u,m,str(r),str(lecnum)))
                     isExist = True
                     break
                 
+                # 중복 확인
                 lecture['term'] = term
                 
                 continue
-        
-            lecture[id_dict[c]] = i
-        
-        if not moreRow:
-            break
-        
-        r += 1
+    
+        lecture[id_dict[c]] = i
 
-        if isExist:
-            continue
+    with lock:
+        if not isExist:
+            lectures[lecnum] = lecture.copy()
         
-        lectures[lecnum] = lecture.copy()
-        
+# 멀티스레드 클래스
+class ProcessRowThread(threading.Thread):
+    def __init__(self, site, lectures, year, term, u='', m='', r_start=2, r_end=None):
+        threading.Thread.__init__(self)
+        self.site = site
+        self.lectures = lectures
+        self.year = year
+        self.term = term
+        self.u = u
+        self.m = m
+        self.r_start = r_start
+        self.r_end = r_end
+
+    def run(self):
+        r = self.r_start
+        moreRow = True
+        while moreRow and (self.r_end is None or r <= self.r_end):
+            print(self.u, self.m, str(r), '                            ', end='\r')
+            moreRow = process_row(self.site, r, self.lectures, self.year, self.term, self.u, self.m)
+            r += 1
+
 
 #전선,전필,지교,지필
-def major_or_designated(idx, site, lectures, select_class, select_univ, select_major, year, term, log):
+def major_or_designated(idx, site, lectures, select_class, select_univ, select_major, year, term, mt):
     #이수구분 선택
     select_class.select_by_index(idx)
     time.sleep(1)
@@ -138,17 +167,39 @@ def major_or_designated(idx, site, lectures, select_class, select_univ, select_m
 
             #검색 버튼 클릭
             site.find_element(By.ID, 'btnSearch').click()
-            time.sleep(3)
+            time.sleep(10)
 
             #검색 결과 테이블 순회
-            iterTable(site, lectures, log, year, term, univ_element.text, major_element.text)
+            
+            thread1 = ProcessRowThread(site, lectures, year, term, u=univ_element.text, m=major_element.text, r_start=2, r_end=50)
+            thread2 = ProcessRowThread(site, lectures, year, term, u=univ_element.text, m=major_element.text, r_start=51, r_end=100)
+            thread3 = ProcessRowThread(site, lectures, year, term, u=univ_element.text, m=major_element.text, r_start=101, r_end=150)
+            thread4 = ProcessRowThread(site, lectures, year, term, u=univ_element.text, m=major_element.text, r_start=151, r_end=200)
+            thread5 = ProcessRowThread(site, lectures, year, term, u=univ_element.text, m=major_element.text, r_start=201, r_end=300)
+            thread6 = ProcessRowThread(site, lectures, year, term, u=univ_element.text, m=major_element.text, r_start=301, r_end=350)
+
+            thread1.start()
+            thread2.start()
+            thread3.start()
+            thread4.start()
+            thread5.start()
+            thread6.start()
+
+            thread1.join()
+            thread2.join()
+            thread3.join()
+            thread4.join()
+            thread5.join()
+            thread6.join()
+
+            # iterTable(site, lectures, log, year, term, univ_element.text, major_element.text)
 
             major+=1
         univ+=1
     
 
 #일선, 교직, 기교, 심교, 융필, 융선
-def other_subjects(idx, site, lectures, select_class, year, term, log):
+def other_subjects(idx, site, lectures, select_class, year, term, mt):
     #이수 구분 선택
     select_class.select_by_index(idx)
     time.sleep(1)
@@ -158,23 +209,4 @@ def other_subjects(idx, site, lectures, select_class, year, term, log):
     time.sleep(1)
 
     #검색 결과 테이블 순회
-    iterTable(site, lectures, log, year, term)
-
-class Multithreading(threading.Thread):
-    def __init__(self, idx, site, lectures, select_class, select_univ=None, select_major=None, year=None, term=None, log=None):
-        threading.Thread.__init__(self)
-        self.idx = idx
-        self.site = site
-        self.lectures = lectures
-        self.select_class = select_class
-        self.select_univ = select_univ
-        self.select_major = select_major
-        self.year = year
-        self.term = term
-        self.log = log
-
-    def run(self):
-        if self.select_univ and self.select_major:
-            major_or_designated(self.idx, self.site, self.lectures, self.select_class, self.select_univ, self.select_major, self.year, self.term, self.log)
-        else:
-            other_subjects(self.idx, self.site, self.lectures, self.select_class, self.year, self.term, self.log)
+    iterTable(site, lectures, year, term)
