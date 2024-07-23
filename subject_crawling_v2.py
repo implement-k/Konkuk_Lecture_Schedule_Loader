@@ -3,12 +3,13 @@ from selenium.webdriver.common.by import By
 
 #저장 key들
 #구버전
+#TODO 삭제
 # id_dict = {
 #         2: 'course_num', 3: 'class', 4: 'lecnum', 5: 'name', 6: 'credit', 7: 'hour', 8: 'type_name',
 #         9: 'lang', 10: '해설', 11: 'note', 12: 'class_elective', 13: 'grade', 14: 'basic_major', 15: 'instructor', 16: 'info'
 #         }
 
-#신버전 + notice, syllabus_url, commentary_url
+#신버전 + notice
 id_dict = {
         2: 'course_num', 3: 'class', 4: 'lecnum', 5: 'name', 6: 'credit', 7: 'hour', 8: 'type_name',
         9: 'lang', 10: 'commentary', 11: 'note', 12: 'liberal_arts_area', 13: 'grade', 14: 'basic_major', 15: 'instructor', 16: 'time'
@@ -17,49 +18,50 @@ id_dict = {
 order = [i for i in range(2, 17)]
 order = [order[2]] + order[:2] + order[3:]    #4->2->3->5->6->...
 
-import threading
-import time
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-
 # 락(Lock) 객체 생성
 lock = threading.Lock()
 
 # 각 행 처리 함수
-def process_row(site, r, lectures, year, term, u='', m=''):
+def process_row(site, r, lectures, year, u='', m=''):
     lecture = {}
     lecnum = 0
     isExist = False
 
     #순서
     for c in order:
+        #해당 칸의 내용 i에 저장
         try:
-            i = site.find_element(By.XPATH, f'/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[{r}]/td[{c}]').text
+            text = site.find_element(By.XPATH, f'/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[{r}]/td[{c}]').text
         except:
-            return False # 처리할 행이 없음
+            #처리할 행이 없을 경우
+            return False
         
+        #과목 해설일 경우 건너뛰기
+        #TODO 해설창에서 영문명 불러오기.
         if c == 10:
             continue
         
+        #과목번호
         if c == 4:
             lecnum = int(site.find_element(By.XPATH, f'/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[{r}]/td[4]/button').text)
             
             with lock:
+                # 중복 확인
+                if lecnum in lectures and 'course_num' in lectures[lecnum]:
+                    isExist = True
+                    break
+
+                #강의계획서 창 열기
                 try:
                     # 강의계획서 창 전환
                     site.find_element(By.XPATH, f'/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[{r}]/td[4]/button').click()
-                    
-                    #TEST 
-                    print(r)
                     site.switch_to.window(site.window_handles[1])
 
                     # 강의계획서 수강신청 유의사항 저장
                     try:
                         lecture['notice'] = site.find_element(By.XPATH, '/html/body/div/div/div[1]/table/tbody/tr[5]/td').text
-                    except NoSuchElementException:
-                        print(f"알림     : {u} {m} {r} 수강신청 유의사항 없음      ")
+                    except:
+                        print(f"알림     : {u} {m} {r} {lecnum} 수강신청 유의사항 없음      ")
                         lecture['notice'] = ''
                         pass
                     
@@ -67,44 +69,29 @@ def process_row(site, r, lectures, year, term, u='', m=''):
                     site.close()
                     site.switch_to.window(site.window_handles[0])
                 except NoSuchElementException:
-                    print(f"알림     : {u} {m} {r} 팝업창 없음      ")
+                    print(f"알림     : {u} {m} {r} {lecnum} 팝업창 없음      ")
                     lecture['notice'] = ''
                     pass
 
-                # # 강의계획서 창 전환
-                # site.find_element(By.XPATH, f'/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[{r}]/td[4]/button').click()
-                # site.switch_to.window(site.window_handles[1])
-
-                # # 강의계획서 수강신청 유의사항 저장
-                # lecture['notice'] = site.find_element(By.XPATH, '/html/body/div/div/div[1]/table/tbody/tr[5]/td').text
-    
-                # # 원래 창으로 전환
-                # site.close()
-                # site.switch_to.window(site.window_handles[0])
-
-                if lecnum in lectures and 'course_num' in lectures[lecnum]:
-                    isExist = True
-                    break
-                
-                # 중복 확인
-                lecture['term'] = term
-                
                 continue
     
-        lecture[id_dict[c]] = i
+        lecture[id_dict[c]] = text
 
+    #lectures에 행 정보 추가
     with lock:
         if not isExist:
             lectures[lecnum] = lecture.copy()
         
+
 # 멀티스레드 클래스
 class ProcessRowThread(threading.Thread):
-    def __init__(self, site, lectures, year, term, u='', m='', r_start=2, r_end=None):
+    def __init__(self, site, lectures, year, idx, isDone, u='', m='', r_start=2, r_end=None):
         threading.Thread.__init__(self)
         self.site = site
         self.lectures = lectures
         self.year = year
-        self.term = term
+        self.idx = idx
+        self.isDone = isDone
         self.u = u
         self.m = m
         self.r_start = r_start
@@ -115,12 +102,15 @@ class ProcessRowThread(threading.Thread):
         moreRow = True
         while moreRow and (self.r_end is None or r <= self.r_end):
             print(self.u, self.m, str(r), '                            ', end='\r')
-            moreRow = process_row(self.site, r, self.lectures, self.year, self.term, self.u, self.m)
+            moreRow = process_row(self.site, r, self.lectures, self.year, self.u, self.m)
             r += 1
+        
+        if not moreRow:
+            self.isDone[self.idx] = True
 
 
 #전선,전필,지교,지필
-def major_or_designated(idx, site, lectures, select_class, select_univ, select_major, year, term, mt):
+def major_or_designated(idx, site, lectures, select_class, select_univ, select_major, year, mt):
     #이수구분 선택
     select_class.select_by_index(idx)
     time.sleep(1)
@@ -167,46 +157,70 @@ def major_or_designated(idx, site, lectures, select_class, select_univ, select_m
 
             #검색 버튼 클릭
             site.find_element(By.ID, 'btnSearch').click()
-            time.sleep(10)
+            time.sleep(5)
 
             #검색 결과 테이블 순회
-            
-            thread1 = ProcessRowThread(site, lectures, year, term, u=univ_element.text, m=major_element.text, r_start=2, r_end=50)
-            thread2 = ProcessRowThread(site, lectures, year, term, u=univ_element.text, m=major_element.text, r_start=51, r_end=100)
-            thread3 = ProcessRowThread(site, lectures, year, term, u=univ_element.text, m=major_element.text, r_start=101, r_end=150)
-            thread4 = ProcessRowThread(site, lectures, year, term, u=univ_element.text, m=major_element.text, r_start=151, r_end=200)
-            thread5 = ProcessRowThread(site, lectures, year, term, u=univ_element.text, m=major_element.text, r_start=201, r_end=300)
-            thread6 = ProcessRowThread(site, lectures, year, term, u=univ_element.text, m=major_element.text, r_start=301, r_end=350)
+            #멀티쓰레딩
+            threads = []
+            isDone = [True]*6
 
-            thread1.start()
-            thread2.start()
-            thread3.start()
-            thread4.start()
-            thread5.start()
-            thread6.start()
+            if mt == 1:
+                r = 2
+                moreRow = True
+                while moreRow:
+                    moreRow = process_row(site, r, lectures, year, u=univ_element.text, m=major_element.text)
+            else:
+                end_limit = 350 // mt + 1
 
-            thread1.join()
-            thread2.join()
-            thread3.join()
-            thread4.join()
-            thread5.join()
-            thread6.join()
+                for i in range(mt):
+                    if i != 0 and isDone[i-1]:
+                        break
 
-            # iterTable(site, lectures, log, year, term, univ_element.text, major_element.text)
+                    start_row = i * end_limit + 2
+                    end_row = (i + 1) * end_limit if i < mt else 350
+                    thread = ProcessRowThread(site, lectures, year, i, isDone, u=univ_element.text, m=major_element.text, r_start=start_row, r_end=end_row)
+                    threads.append(thread)
+                    thread.start()
+
+                for thread in threads:
+                    thread.join()
 
             major+=1
         univ+=1
     
 
 #일선, 교직, 기교, 심교, 융필, 융선
-def other_subjects(idx, site, lectures, select_class, year, term, mt):
+def other_subjects(idx, site, lectures, select_class, year, mt):
     #이수 구분 선택
     select_class.select_by_index(idx)
     time.sleep(1)
 
     #검색 버튼 클릭
     site.find_element(By.ID, 'btnSearch').click()
-    time.sleep(1)
+    time.sleep(5)
 
     #검색 결과 테이블 순회
-    iterTable(site, lectures, year, term)
+    #멀티쓰레딩
+    threads = []
+    isDone = [True]*6
+
+    if mt == 1:
+        r = 2
+        moreRow = True
+        while moreRow:
+            moreRow = process_row(site, r, lectures, year, u=univ_element.text, m=major_element.text)
+    else:
+        end_limit = 350 // mt + 1
+
+        for i in range(mt):
+            if i != 0 and isDone[i-1]:
+                break
+
+            start_row = i * end_limit + 2
+            end_row = (i + 1) * end_limit if i < mt else 350
+            thread = ProcessRowThread(site, lectures, year, i, isDone, u=univ_element.text, m=major_element.text, r_start=start_row, r_end=end_row)
+            threads.append(thread)
+            thread.start()
+
+        for thread in threads:
+            thread.join()
