@@ -33,19 +33,25 @@ def iterTable(site, lectures, log, year, term, u='', m=''):
         isExist = False
 
         #강의계획서 창 전환
-        site.find_element(By.XPATH, '/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[2]/td[4]/button').click()
-        site.switch_to.window(site.window_handles[1])
-
-        #강의계획서 수강신청 유의사항 저장
         try:
-            lecture['notice'] = site.find_element(By.XPATH, '/html/body/div/div/div[1]/table/tbody/tr[5]/td').text
+            site.find_element(By.XPATH, '/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[2]/td[4]/button').click()
+            site.switch_to.window(site.window_handles[1])
+
+            #강의계획서 수강신청 유의사항 저장
+            try:
+                lecture['notice'] = site.find_element(By.XPATH, '/html/body/div/div/div[1]/table/tbody/tr[5]/td').text
+            except:
+                print(f"알림     : {u} {m} {r} 수강신청 유의사항 없음      ")
+                lecture['notice'] = ''
+                pass
+            
+            #원래 창으로 전환
+            site.close()
+            site.switch_to.window(site.window_handles[0])
         except:
-            print("오류")
+            print(f"알림     : {u} {m} {r} 팝업창 없음      ")
+            lecture['notice'] = ''
             pass
-        
-        #원래 창으로 전환
-        site.close()
-        site.switch_to.window(site.window_handles[0])
 
         for c in order:
             #해당 요소 불러오기
@@ -67,12 +73,8 @@ def iterTable(site, lectures, log, year, term, u='', m=''):
                     isExist = True
                     break
                 
-                #강의계획서, 해설 링크 저장
-                lecture['syllabus_url'] = f'https://sugang.konkuk.ac.kr/sugang/search?attribute=lectPlan&fake=1721569321085/&pYear={year}&pTerm={term}&pSbjtId={lecnum}'
-
-                course_num = site.find_element(By.XPATH, f'/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[{r}]/td[2]').text
-                lecture['commentary_url'] = f'https://sugang.konkuk.ac.kr/sugang/search?attribute=commentPop&fake=1721569321085&pOpenYy={year}&pHaksuId={course_num}'
-
+                lecture['term'] = term
+                
                 continue
         
             lecture[id_dict[c]] = i
@@ -136,7 +138,7 @@ def major_or_designated(idx, site, lectures, select_class, select_univ, select_m
 
             #검색 버튼 클릭
             site.find_element(By.ID, 'btnSearch').click()
-            time.sleep(1)
+            time.sleep(3)
 
             #검색 결과 테이블 순회
             iterTable(site, lectures, log, year, term, univ_element.text, major_element.text)
