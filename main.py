@@ -28,10 +28,8 @@ CHECKPOINT = ''
 #v2
 lectures = makeLectures(YEAR, SEMESTER, CHECKPOINT, URL, MULTITHREADING)
 
-
 ##################### 출력 ######################
 #checkpoint_[이수과정]_[날짜].json : 이수과정까지의 체크포인트
 #lectures_[날짜].json 			  : 완료된 파일
-#dub_log.json 					  : 로그파일
 with open(f'lectures_{NOW}.json', 'w', encoding='UTF-8') as f : 
 	json.dump(lectures, f, indent=4, ensure_ascii=False)

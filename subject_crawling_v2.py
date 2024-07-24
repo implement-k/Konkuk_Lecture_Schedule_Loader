@@ -85,13 +85,14 @@ def process_row(site, r, lectures, year, u='', m=''):
 
 # 멀티스레드 클래스
 class ProcessRowThread(threading.Thread):
-    def __init__(self, site, lectures, year, idx, isDone, u='', m='', r_start=2, r_end=None):
+    def __init__(self, site, lectures, year, idx, isDone, log, u='', m='', r_start=2, r_end=2):
         threading.Thread.__init__(self)
         self.site = site
         self.lectures = lectures
         self.year = year
         self.idx = idx
         self.isDone = isDone
+        self.log = log
         self.u = u
         self.m = m
         self.r_start = r_start
@@ -100,8 +101,18 @@ class ProcessRowThread(threading.Thread):
     def run(self):
         r = self.r_start
         moreRow = True
-        while moreRow and (self.r_end is None or r <= self.r_end):
+        self.log[self.u] = {self.m:[]}
+
+        #r_start ~ r_end 까지 순회
+        while moreRow and r <= self.r_end:
+            #진행상황 출력
             print(self.u, self.m, str(r), '                            ', end='\r')
+
+            #순회 로그 추가
+            with lock:
+                self.log[self.u][self.m].append(r)
+
+            #다음 행이 있는지 확인 및 행 순회
             moreRow = process_row(self.site, r, self.lectures, self.year, self.u, self.m)
             r += 1
         
@@ -110,7 +121,7 @@ class ProcessRowThread(threading.Thread):
 
 
 #전선,전필,지교,지필
-def major_or_designated(idx, site, lectures, select_class, select_univ, select_major, year, mt):
+def major_or_designated(idx, site, lectures, select_class, select_univ, select_major, year, mt, log):
     #이수구분 선택
     select_class.select_by_index(idx)
     time.sleep(1)
@@ -131,7 +142,6 @@ def major_or_designated(idx, site, lectures, select_class, select_univ, select_m
 
         #대학 이름 확인
         univ_element = site.find_element(By.XPATH, f'/html/body/div[2]/div/div/div[1]/form/table/tbody/tr[2]/td[3]/select/option[{univ+1}]')
-        time.sleep(0.5)
 
         #학과 순회
         major = 0
@@ -157,28 +167,47 @@ def major_or_designated(idx, site, lectures, select_class, select_univ, select_m
 
             #검색 버튼 클릭
             site.find_element(By.ID, 'btnSearch').click()
-            time.sleep(5)
+            time.sleep(2)
 
             #검색 결과 테이블 순회
             #멀티쓰레딩
             threads = []
-            isDone = [True]*6
+            isDone = [True]*mt
 
+            #멀티쓰레드 기능 off
             if mt == 1:
                 r = 2
                 moreRow = True
+
+                #테이블 순회
                 while moreRow:
                     moreRow = process_row(site, r, lectures, year, u=univ_element.text, m=major_element.text)
+                    r += 1
             else:
-                end_limit = 350 // mt + 1
+                limits = [10, 19, 30, 40, 50, 80, 120, 160, 200, 240, 280, 320, 350]
+                limit = 2
+                
+                for l in limits:
+                    try:
+                        site.find_element(By.XPATH, f'/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[{l}]/td[1]')
+                    except:
+                        limit = l-1
+                        break
+                        
+                interval = limit // mt if limit // mt > 2 else 2
 
                 for i in range(mt):
                     if i != 0 and isDone[i-1]:
                         break
+                    
+                    if limit < i * interval + 2:
+                        break
+                    
+                    
+                    start_row = i * interval + 2
+                    end_row = (i + 1) * interval + 2 if i != mt - 1 else limit
 
-                    start_row = i * end_limit + 2
-                    end_row = (i + 1) * end_limit if i < mt else 350
-                    thread = ProcessRowThread(site, lectures, year, i, isDone, u=univ_element.text, m=major_element.text, r_start=start_row, r_end=end_row)
+                    thread = ProcessRowThread(site, lectures, year, i, isDone, log, u=univ_element.text, m=major_element.text, r_start=start_row, r_end=end_row)
                     threads.append(thread)
                     thread.start()
 
