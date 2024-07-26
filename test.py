@@ -1,3 +1,9 @@
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException
+from webdriver_manager.chrome import ChromeDriverManager
+from subject_crawling import major_or_designated
+from subject_crawling import other_subjects
+import json, datetime, time, copy
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -7,9 +13,9 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from webdriver_manager.chrome import ChromeDriverManager
-from subject_crawling import major_or_designated
-from subject_crawling import other_subjects
-import json, datetime, time
+from subject_crawling_v2 import major_or_designated
+from subject_crawling_v2 import other_subjects
+import json, datetime, time, multiprocessing
 
 options = Options()
 # gitpod에서 접속하기 위한 옵션
@@ -36,6 +42,7 @@ time.sleep(1)
 site.find_element(By.ID, 'btnSearch').click()
 time.sleep(1)
 
+print(site)
 site.find_element(By.XPATH, '/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[2]/td[4]/button').click()
 
 site.switch_to.window(site.window_handles[1])
@@ -43,4 +50,6 @@ text = site.find_element(By.XPATH, '/html/body/div/div/div[1]/table/tbody/tr[5]/
 print(text)
 site.close()
 site.switch_to.window(site.window_handles[0])
-
+print(site)
+site2 = copy.copy(site)
+print(site2)

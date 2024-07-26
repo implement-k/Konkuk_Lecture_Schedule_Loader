@@ -71,8 +71,6 @@ def crawlSite(site, YEAR, SEMESTER, CHECKPOINT, mt):
     select_class = Select(site.find_element(By.ID, 'pPobt'))
     select_univ = Select(site.find_element(By.ID, 'pUniv'))
     select_major = Select(site.find_element(By.ID, 'pSustMjCd'))
-    time.sleep(0.1)
-    log = {}
 
     #진행과정 출력
     print('진행과정 : 불러오기 시작')
@@ -80,7 +78,7 @@ def crawlSite(site, YEAR, SEMESTER, CHECKPOINT, mt):
 
     if checkpoint < 1:
         print('진행과정 : 전선 시작')
-        major_or_designated(0, site, lectures, select_class, select_univ, select_major, YEAR, mt, log) #전선
+        major_or_designated(0, site, lectures, select_class, select_univ, select_major, YEAR, mt) #전선
         print('진행과정 : 전선 완료                                     ')
         lectures['checkpoint'] = 1
 
