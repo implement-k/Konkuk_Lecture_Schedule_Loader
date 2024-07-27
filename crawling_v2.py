@@ -17,6 +17,8 @@ def crawlSite(site, YEAR, SEMESTER, CHECKPOINT, mt):
     log = []
     lectures = {'checkpoint':0}
     checkpoint = 0
+    term_code = ['B01011', 'B01012', 'B01014', 'B01015']
+    term = term_code[SEMESTER-1]
 
     #선택한 옵션 출력
     print(f'선택한 옵션  : (연도 : {YEAR}, 학기 : {SEMESTER}, ',end='')
@@ -78,7 +80,7 @@ def crawlSite(site, YEAR, SEMESTER, CHECKPOINT, mt):
 
     if checkpoint < 1:
         print('진행과정 : 전선 시작')
-        major_or_designated(0, site, lectures, select_class, select_univ, select_major, YEAR, mt) #전선
+        major_or_designated(0, site, lectures, select_class, select_univ, select_major, YEAR, term, mt) #전선
         print('진행과정 : 전선 완료                                     ')
         lectures['checkpoint'] = 1
 
@@ -174,12 +176,6 @@ def readySelenium():
 
 
 def makeLectures(YEAR, SEMESTER, CHECKPOINT, URL, MULTITHREADING):
-    site = readySelenium()
-
-    #페이지 접속
-    site.get(URL)
-    print('접속 완료    : ' + site.title)
-
     #멀티쓰레딩 개수 선택
     cores = multiprocessing.cpu_count()
 
@@ -192,6 +188,12 @@ def makeLectures(YEAR, SEMESTER, CHECKPOINT, URL, MULTITHREADING):
         print(f"CPU 코어 수: {cores}, 자동 MultiThreading 수: {mt}")
     else:
         print(f"CPU 코어 수: {cores}, 설정한 MultiThreading 수: {mt}")
+    
+    site = readySelenium()
+
+    #페이지 접속
+    site.get(URL)
+    print('접속 완료    : ' + site.title)
 
     lectures = crawlSite(site, YEAR, SEMESTER, CHECKPOINT, mt)
 

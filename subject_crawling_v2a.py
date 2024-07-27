@@ -24,11 +24,20 @@ id_dict = {
 
 order = [4, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
 
+options = Options()
+# gitpod에서 접속하기 위한 옵션
+options.add_argument("--disable-dev-shm-usage") 
+options.add_argument("--headless")  
+
+# Setup ChromeDriver
+service = Service(ChromeDriverManager().install())
+
 # 락(Lock) 객체 생성
 lock = threading.Lock()
 
 # 각 행 처리 함수
-def process_row(site, r, lectures, year, term, que, u='', m=''):
+def process_row(site, r, lectures, year, term, u='', m=''):
+    global options, service
     lecture = {}
     lecnum = 0
     isExist = False
@@ -55,29 +64,42 @@ def process_row(site, r, lectures, year, term, que, u='', m=''):
                 if lecnum in lectures and 'course_num' in lectures[lecnum]:
                     isExist = True
                     break
-                
-                que.append(lecnum)
+            
+            #팝업창 제어
+            tmp = webdriver.Chrome(service=service, options=options)
+            tmp.get("https://sugang.konkuk.ac.kr/")
+            tmp.execute_script(\
+                f'window.open("https://sugang.konkuk.ac.kr/sugang/search?attribute=lectPlan&fake=1722002027694&pYear={year}&pTerm={term}&pSbjtId={lecnum}")')
+            tmp.switch_to.window(tmp.window_handles[1])
 
-        with lock:
-            lecture[id_dict[c]] = text
+            # 강의계획서 수강신청 유의사항 저장
+            try:
+                lecture['notice'] = tmp.find_element(By.XPATH, '/html/body/div/div/div[1]/table/tbody/tr[5]/td').text
+            except:
+                print(f"알림     : {u} {m} {r} {lecnum} 수강신청 유의사항 없음      ")
+                lecture['notice'] = ''
+                pass
+
+            tmp.quit
+
+        lecture[id_dict[c]] = text
+    
+    return True
 
     #lectures에 행 정보 추가
     with lock:
         if not isExist:
             lectures[lecnum] = lecture.copy()
-        
-    return True
 
 
 # 멀티스레드 클래스
 class ProcessRowThread(threading.Thread):
-    def __init__(self, site, lectures, year, term, que, u='', m='', r_start=2, r_end=2):
+    def __init__(self, site, lectures, year, term, u='', m='', r_start=2, r_end=2):
         threading.Thread.__init__(self)
         self.site = site
         self.lectures = lectures
         self.year = year
         self.term = term
-        self.que = que
         self.u = u
         self.m = m
         self.r_start = r_start
@@ -90,14 +112,12 @@ class ProcessRowThread(threading.Thread):
             print(self.u, self.m, str(r), '                            ')
             # print(self.u, self.m, str(r), '                            ', end='\r')
 
-            moreRow = process_row(self.site, r, self.lectures, self.year, self.term, self.que, self.u, self.m)
+            moreRow = process_row(self.site, r, self.lectures, self.year, self.term, self.u, self.m)
             if not moreRow: break
             r += 1
 
 
 def iterTable(mt, site, lectures, year, term, univ_name, major_name):
-    que = []
-
     if mt == 1:
         r = 2
 
@@ -128,29 +148,12 @@ def iterTable(mt, site, lectures, year, term, univ_name, major_name):
         start_row = i * interval + 2
         end_row = (i + 1) * interval + 2
 
-        thread = ProcessRowThread(site, lectures, year, term, que, u=univ_name, m=major_name, r_start=start_row, r_end=end_row)
+        thread = ProcessRowThread(site, lectures, year, term, u=univ_name, m=major_name, r_start=start_row, r_end=end_row)
         threads.append(thread)
         thread.start()
 
     for thread in threads:
         thread.join()
-    
-    #팝업창 제어
-    for lecnum in que:    
-        site.execute_script(\
-        f'window.open("https://sugang.konkuk.ac.kr/sugang/search?attribute=lectPlan&fake=1722002027694&pYear={year}&pTerm={term}&pSbjtId={lecnum}")')
-        site.switch_to.window(site.window_handles[1])
-
-        # 강의계획서 수강신청 유의사항 저장
-        try:
-            lectures[lecnum]['notice'] = site.find_element(By.XPATH, '/html/body/div/div/div[1]/table/tbody/tr[5]/td').text
-        except NoSuchElementException:
-            print(f"알림     : {univ_name} {major_name} {lecnum} 수강신청 유의사항 없음      ")
-            lectures[lecnum]['notice'] = ''
-            pass
-
-        site.close()
-        site.switch_to.window(site.window_handles[0])
 
 
 #전선,전필,지교,지필
@@ -210,7 +213,30 @@ def other_subjects(idx, site, lectures, select_class, year, mt):
 
     #검색 버튼 클릭
     site.find_element(By.ID, 'btnSearch').click()
-    time.sleep(2)
+    time.sleep(5)
 
     #검색 결과 테이블 순회
-    iterTable(mt, site, lectures, year, term)
+    #멀티쓰레딩
+    threads = []
+    isDone = [True]*6
+
+    if mt == 1:
+        r = 2
+        moreRow = True
+        while moreRow:
+            moreRow = process_row(site, r, lectures, year, term, u=univ_element.text, m=major_name)
+    else:
+        end_limit = 350 // mt + 1
+
+        for i in range(mt):
+            if i != 0 and isDone[i-1]:
+                break
+
+            start_row = i * end_limit + 2
+            end_row = (i + 1) * end_limit if i < mt else 350
+            thread = ProcessRowThread(site, lectures, year, term, u=univ_element.text, m=major_name, r_start=start_row, r_end=end_row)
+            threads.append(thread)
+            thread.start()
+
+        for thread in threads:
+            thread.join()
