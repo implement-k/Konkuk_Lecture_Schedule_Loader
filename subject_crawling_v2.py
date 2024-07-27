@@ -87,8 +87,7 @@ class ProcessRowThread(threading.Thread):
         r = self.r_start
 
         while r < self.r_end:
-            print(self.u, self.m, str(r), '                            ')
-            # print(self.u, self.m, str(r), '                            ', end='\r')
+            print(self.u, self.m, str(r), '                            ', end='\r')
 
             moreRow = process_row(self.site, r, self.lectures, self.year, self.term, self.que, self.u, self.m)
             if not moreRow: break
@@ -144,6 +143,7 @@ def iterTable(mt, site, lectures, year, term, univ_name, major_name):
         # 강의계획서 수강신청 유의사항 저장
         try:
             lectures[lecnum]['notice'] = site.find_element(By.XPATH, '/html/body/div/div/div[1]/table/tbody/tr[5]/td').text
+            print(univ_name, major_name, lecnum, '강의계획서                            ', end='\r')
         except NoSuchElementException:
             print(f"알림     : {univ_name} {major_name} {lecnum} 수강신청 유의사항 없음      ")
             lectures[lecnum]['notice'] = ''
@@ -203,7 +203,7 @@ def major_or_designated(idx, site, lectures, select_class, select_univ, select_m
 
 
 # #일선, 교직, 기교, 심교, 융필, 융선
-def other_subjects(idx, site, lectures, select_class, year, mt):
+def other_subjects(idx, site, lectures, select_class, year, term, mt):
     #이수 구분 선택
     select_class.select_by_index(idx)
     time.sleep(1)

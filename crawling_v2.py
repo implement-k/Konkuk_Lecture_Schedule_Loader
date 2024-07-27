@@ -92,7 +92,7 @@ def crawlSite(site, YEAR, SEMESTER, CHECKPOINT, mt):
 
     if checkpoint < 2:
         print('진행과정 : 전필 시작')
-        major_or_designated(1, site, lectures, select_class, select_univ, select_major, YEAR, mt) #전필
+        major_or_designated(1, site, lectures, select_class, select_univ, select_major, YEAR, term, mt) #전필
         print('진행과정 : 전필 완료                                     ')
         lectures['checkpoint'] = 2
 
@@ -102,7 +102,7 @@ def crawlSite(site, YEAR, SEMESTER, CHECKPOINT, mt):
 
     if checkpoint < 3:
         print('진행과정 : 지교 시작')
-        major_or_designated(2, site, lectures, select_class, select_univ, select_major, YEAR, mt) #지교
+        major_or_designated(2, site, lectures, select_class, select_univ, select_major, YEAR, term, mt) #지교
         print('진행과정 : 지교 완료                                     ')
         lectures['checkpoint'] = 3
 
@@ -112,7 +112,7 @@ def crawlSite(site, YEAR, SEMESTER, CHECKPOINT, mt):
 
     if checkpoint < 4:
         print('진행과정 : 지필 시작')
-        major_or_designated(3, site, lectures, select_class, select_univ, select_major, YEAR, mt) #지필
+        major_or_designated(3, site, lectures, select_class, select_univ, select_major, YEAR, term, mt) #지필
         print('진행과정 : 지필 완료                                     ')
         lectures['checkpoint'] = 4
 
@@ -122,10 +122,10 @@ def crawlSite(site, YEAR, SEMESTER, CHECKPOINT, mt):
 
     if checkpoint < 5:
         print('진행과정 : 일선 시작')
-        other_subjects(4, site, lectures, select_class, YEAR, mt)  #일선
+        other_subjects(4, site, lectures, select_class, YEAR, term, mt)  #일선
         print('진행과정 : 일선 완료                                     ')
         print('진행과정 : 교직 시작')
-        other_subjects(5, site, lectures, select_class, YEAR, mt)  #교직
+        other_subjects(5, site, lectures, select_class, YEAR, term, mt)  #교직
         print('진행과정 : 교직 완료                                     ')
         lectures['checkpoint'] = 5
 
@@ -135,7 +135,7 @@ def crawlSite(site, YEAR, SEMESTER, CHECKPOINT, mt):
 
     if checkpoint < 6:
         print('진행과정 : 기교 시작')
-        other_subjects(6, site, lectures, select_class, YEAR, mt)  #기교
+        other_subjects(6, site, lectures, select_class, YEAR, term, mt)  #기교
         print('진행과정 : 기교 완료                                     ')
         lectures['checkpoint'] = 6
 
@@ -145,7 +145,7 @@ def crawlSite(site, YEAR, SEMESTER, CHECKPOINT, mt):
     
     if checkpoint < 7:
         print('진행과정 : 심교 시작')
-        other_subjects(7, site, lectures, select_class, YEAR, mt)  #심교
+        other_subjects(7, site, lectures, select_class, YEAR, term, mt)  #심교
         print('진행과정 : 심교 완료                                     ')
         del lectures['checkpoint']
 
@@ -182,7 +182,7 @@ def makeLectures(YEAR, SEMESTER, CHECKPOINT, URL, MULTITHREADING):
     mt = MULTITHREADING
     if mt == 0:
         if cores < 5: mt = 5
-        elif cores < 9: mt = 7
+        elif cores < 7: mt = 7
         else: mt = 9
 
         print(f"CPU 코어 수: {cores}, 자동 MultiThreading 수: {mt}")
