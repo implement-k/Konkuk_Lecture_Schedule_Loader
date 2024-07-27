@@ -16,11 +16,36 @@ This Docker environment is designed to facilitate web scraping using Python with
 
 2️⃣ 실행
 
-*️⃣ 로컬에서 사용시 Dockerfile, .gitpod.yml 삭제 후 사용하여도 문제 없음.
+ * 로컬에서 사용시 Dockerfile, .gitpod.yml 삭제 후 사용하여도 문제 없음.
+
+## v.2 변경 사항
+
+<div>
+  id_dict = {
+    2: 'course_num',
+    3: 'class',
+    4: 'lecnum',
+    5: 'name',
+    6: 'credit',
+    7: 'hour',
+    8: 'type_name',
+    9: 'lang',
+    10: '해설', -> 제거
+    11: 'note',
+    12: 'class_elective',
+    13: 'grade',
+    14: 'basic_major',
+    15: 'instructor',
+    16: 'info' -> 'time'
+    + : 'notice'
+  }
+
+</div>
+
 
 ## 추가될 기능
 
-- 강의계획서 불러오기
+- 해설 및 영문명 불러오기
 
 ## About Image
 
