@@ -80,7 +80,7 @@ class ProcessRowThread(threading.Thread):
             if not moreRow: break
             r += 1
 
-def iterTable(mt, site, lectures, year, term, univ_name='', major_name=''):
+def iterTable(mt, site, lectures, year, term, popup, univ_name='', major_name=''):
     que = []
 
     if mt == 1:
@@ -120,27 +120,28 @@ def iterTable(mt, site, lectures, year, term, univ_name='', major_name=''):
     for thread in threads:
         thread.join()
     
-    #팝업창 제어
-    for lecnum in que:    
-        site.execute_script(\
-        f'window.open("https://sugang.konkuk.ac.kr/sugang/search?attribute=lectPlan&fake=1722002027694&pYear={year}&pTerm={term}&pSbjtId={lecnum}")')
-        site.switch_to.window(site.window_handles[1])
+    if popup:
+        #팝업창 제어
+        for lecnum in que:    
+            site.execute_script(\
+            f'window.open("https://sugang.konkuk.ac.kr/sugang/search?attribute=lectPlan&fake=1722002027694&pYear={year}&pTerm={term}&pSbjtId={lecnum}")')
+            site.switch_to.window(site.window_handles[1])
 
-        # 강의계획서 수강신청 유의사항 저장
-        try:
-            lectures[lecnum]['notice'] = site.find_element(By.XPATH, '/html/body/div/div/div[1]/table/tbody/tr[5]/td').text
-            print(univ_name, major_name, lecnum, '강의계획서                            ', end='\r')
-        except NoSuchElementException:
-            print(f"알림     : {univ_name} {major_name} {lecnum} 수강신청 유의사항 없음      ")
-            lectures[lecnum]['notice'] = ''
-            pass
+            # 강의계획서 수강신청 유의사항 저장
+            try:
+                lectures[lecnum]['notice'] = site.find_element(By.XPATH, '/html/body/div/div/div[1]/table/tbody/tr[5]/td').text
+                print(univ_name, major_name, lecnum, '강의계획서                            ', end='\r')
+            except NoSuchElementException:
+                print(f"알림     : {univ_name} {major_name} {lecnum} 수강신청 유의사항 없음      ")
+                lectures[lecnum]['notice'] = ''
+                pass
 
-        site.close()
-        site.switch_to.window(site.window_handles[0])
+            site.close()
+            site.switch_to.window(site.window_handles[0])
 
 
 #전선,전필,지교,지필
-def major_or_designated(idx, site, lectures, select_class, select_univ, select_major, year, term, mt):
+def major_or_designated(idx, site, lectures, select_class, select_univ, select_major, year, term, mt, popup):
     #이수구분 선택
     select_class.select_by_index(idx)
     time.sleep(1)
@@ -189,14 +190,14 @@ def major_or_designated(idx, site, lectures, select_class, select_univ, select_m
             time.sleep(2)
 
             #검색 결과 테이블 순회
-            iterTable(mt, site, lectures, year, term, univ_name, major_name)
+            iterTable(mt, site, lectures, year, term, popup, univ_name, major_name)
 
             major+=1
         univ+=1
 
 
 # #일선, 교직, 기교, 심교, 융필, 융선
-def other_subjects(idx, site, lectures, select_class, year, term, mt):
+def other_subjects(idx, site, lectures, select_class, year, term, mt, popup):
     #이수 구분 선택
     select_class.select_by_index(idx)
     time.sleep(1)
@@ -206,4 +207,4 @@ def other_subjects(idx, site, lectures, select_class, year, term, mt):
     time.sleep(2)
 
     #검색 결과 테이블 순회
-    iterTable(mt, site, lectures, year, term)
+    iterTable(mt, site, lectures, year, term, popup)
