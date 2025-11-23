@@ -1,12 +1,8 @@
 import time, threading
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, UnexpectedAlertPresentException, TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium import webdriver
 
 id_dict = {
         2: 'course_num', 3: 'class', 4: 'lecnum', 5: 'name', 6: 'credit', 7: 'hour', 8: 'type_name',
@@ -15,7 +11,7 @@ order = [4, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
 lock = threading.Lock()
 
 # 각 행 처리 함수
-def process_row(site, r, lectures, year, term, que, u='', m=''):
+def process_row(site, r, lectures, que=[]):
     lecture = {}
     lecnum = 0
     isExist = False
@@ -43,7 +39,8 @@ def process_row(site, r, lectures, year, term, que, u='', m=''):
                     isExist = True
                     break
                 
-                que.append(lecnum)
+                if que is not None:
+                    que.append(lecnum)
 
         with lock:
             lecture[id_dict[c]] = text
@@ -76,7 +73,7 @@ class ProcessRowThread(threading.Thread):
         while r < self.r_end:
             print(self.u, self.m, str(r), '                            ', end='\r')
 
-            moreRow = process_row(self.site, r, self.lectures, self.year, self.term, self.que, self.u, self.m)
+            moreRow = process_row(self.site, r, self.lectures, self.que)
             if not moreRow: break
             r += 1
 
@@ -88,13 +85,12 @@ def iterTable(mt, site, lectures, year, term, popup, univ_name='', major_name=''
 
         #테이블 순회
         while True:
-            moreRow = process_row(site, r, lectures, year, term, u=univ_name, m=major_name)
+            moreRow = process_row(site, r, lectures)
             if not moreRow: break
             r += 1
         return
 
     threads = []
-    isDone = [False] * mt
     limit_seeds = [2, 3, 4, 5, 8, 11, 15, 18, 22, 27, 31, 35, 38]
     limits = [seed * mt + 2 for seed in limit_seeds]
     limit = 2
@@ -121,34 +117,50 @@ def iterTable(mt, site, lectures, year, term, popup, univ_name='', major_name=''
         thread.join()
     
     if popup:
-        #팝업창 제어
-        for lecnum in que:    
-            site.execute_script(\
-            f'window.open("https://sugang.konkuk.ac.kr/sugang/search?attribute=lectPlan&fake=1722002027694&pYear={year}&pTerm={term}&pSbjtId={lecnum}")')
+        handle_popups(site, lectures, que, year, term, univ_name, major_name)
+
+
+def handle_popups(site, lectures, que, year, term, univ_name='', major_name=''):
+    """팝업창 처리를 별도 함수로 분리"""
+    for lecnum in que:
+        try:
+            site.execute_script(
+                f'window.open("https://sugang.konkuk.ac.kr/sugang/search?attribute=lectPlan&fake=1722002027694&pYear={year}&pTerm={term}&pSbjtId={lecnum}")')
             site.switch_to.window(site.window_handles[1])
 
-            # 강의계획서 수강신청 유의사항 저장
+            # 강의계획서 수강신청 유의사항 저장 (최대 5초 대기)
             try:
-                lectures[lecnum]['notice'] = site.find_element(By.XPATH, '/html/body/div/div/div[1]/table/tbody/tr[5]/td').text
+                notice_element = WebDriverWait(site, 5).until(
+                    EC.presence_of_element_located((By.XPATH, '/html/body/div/div/div[1]/table/tbody/tr[5]/td'))
+                )
+                lectures[lecnum]['notice'] = notice_element.text
                 print(univ_name, major_name, lecnum, '강의계획서                            ', end='\r')
-            except NoSuchElementException:
+            except (NoSuchElementException, TimeoutException):
                 print(f"알림     : {univ_name} {major_name} {lecnum} 수강신청 유의사항 없음      ")
                 lectures[lecnum]['notice'] = ''
-                pass
 
             site.close()
             site.switch_to.window(site.window_handles[0])
+        except Exception as e:
+            print(f"경고     : 팝업 처리 중 오류 ({lecnum}): {e}")
+            # 창이 여러 개 열려있으면 메인 창으로 돌아가기
+            if len(site.window_handles) > 1:
+                site.switch_to.window(site.window_handles[0])
 
 
-#전선,전필,지교,지필
+#전선,전필,전기,지교,지필
 def major_or_designated(idx, site, lectures, select_class, select_univ, select_major, year, term, mt, popup):
     #이수구분 선택
     select_class.select_by_index(idx)
-    time.sleep(1)
+    time.sleep(0.5)  # 대기 시간 단축
 
     #대학 필수 알림 뜰 시 확인 클릭
-    try: site.find_element(By.XPATH, '/html/body/div[3]/div[2]/div/div/div/div/div/div/div/div[4]/button[1]').click()
-    except: pass
+    try: 
+        WebDriverWait(site, 2).until(
+            EC.element_to_be_clickable((By.XPATH, '/html/body/div[3]/div[2]/div/div/div/div/div/div/div/div[4]/button[1]'))
+        ).click()
+    except: 
+        pass
 
     #대학들 순회
     univ = 0
@@ -158,13 +170,19 @@ def major_or_designated(idx, site, lectures, select_class, select_univ, select_m
         except NoSuchElementException: break
 
         #대학 이름 확인
-        while True:
+        max_retries = 3
+        for attempt in range(max_retries):
             try: 
                 univ_name = site.find_element(By.XPATH, f'/html/body/div[2]/div/div/div[1]/form/table/tbody/tr[2]/td[3]/select/option[{univ+1}]').text
                 break
             except UnexpectedAlertPresentException as e:
-                print('경고     :'+e+'[1초후 다시실행]')
-                time.sleep(1)
+                if attempt < max_retries - 1:
+                    print(f'경고     : UnexpectedAlert 발생 [{attempt+1}/{max_retries}] (1초후 재시도)')
+                    time.sleep(1)
+                else:
+                    print(f'경고     : UnexpectedAlert 지속 발생, 해당 대학 건너뜀')
+                    univ += 1
+                    continue
 
 
         #학과 순회
@@ -187,7 +205,16 @@ def major_or_designated(idx, site, lectures, select_class, select_univ, select_m
 
             #검색 버튼 클릭
             site.find_element(By.ID, 'btnSearch').click()
-            time.sleep(2)
+            
+            # 검색 결과 로딩 대기 (테이블이 나타날 때까지)
+            try:
+                WebDriverWait(site, 20).until(
+                    EC.presence_of_element_located((By.XPATH, '/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[2]'))
+                )
+            except TimeoutException:
+                print(f"경고     : {univ_name} {major_name} 검색 결과 로딩 실패")
+                major += 1
+                continue
 
             #검색 결과 테이블 순회
             iterTable(mt, site, lectures, year, term, popup, univ_name, major_name)
@@ -200,11 +227,19 @@ def major_or_designated(idx, site, lectures, select_class, select_univ, select_m
 def other_subjects(idx, site, lectures, select_class, year, term, mt, popup):
     #이수 구분 선택
     select_class.select_by_index(idx)
-    time.sleep(1)
+    time.sleep(0.5)  # 대기 시간 단축
 
     #검색 버튼 클릭
     site.find_element(By.ID, 'btnSearch').click()
-    time.sleep(2)
+    
+    # 검색 결과 로딩 대기
+    try:
+        WebDriverWait(site, 10).until(
+            EC.presence_of_element_located((By.XPATH, '/html/body/div[2]/div/div/div[2]/div/div[3]/div[3]/div/table/tbody/tr[2]'))
+        )
+    except TimeoutException:
+        print(f"경고     : 검색 결과 로딩 실패")
+        return
 
     #검색 결과 테이블 순회
     iterTable(mt, site, lectures, year, term, popup)
